@@ -1,12 +1,13 @@
 const $=id=>document.getElementById(id),win=$('playerWindow');
-function restore(){win.hidden=false;$('taskPlayer').classList.remove('inactive');$('startMenu').hidden=true;$('start').setAttribute('aria-expanded','false')}
-function hide(){window.dispatchEvent(new Event('noctra-window-hide'));win.hidden=true;$('taskPlayer').classList.add('inactive');$('taskPlayer').focus()}
+function restore(){win.classList.remove('minimized');$('minimize').setAttribute('aria-label','Minimizar player');$('minimize').title='Minimizar';win.hidden=false;$('taskPlayer').classList.remove('inactive');$('startMenu').hidden=true;$('start').setAttribute('aria-expanded','false')}
+function hide(){const video=$('youtubePanel');if(video&&!video.hidden){win.hidden=false;win.classList.add('minimized');$('minimize').setAttribute('aria-label','Restaurar player');$('minimize').title='Restaurar';}else{win.classList.remove('minimized');win.hidden=true;}$('taskPlayer').classList.add('inactive');$('taskPlayer').focus()}
+function closeWindow(){window.dispatchEvent(new Event('noctra-window-hide'));win.classList.remove('minimized');win.hidden=true;$('taskPlayer').classList.add('inactive');$('taskPlayer').focus()}
 function collection(open){$('collection').hidden=!open;$('toggleCollection').setAttribute('aria-expanded',String(open))}
 $('toggleCollection').onclick=()=>collection($('collection').hidden);
 $('desktopPlayer').onclick=restore;$('menuPlayer').onclick=restore;
 for(const id of ['desktopCollection','menuCollection'])$(id).onclick=()=>{restore();collection(true)};
-$('minimize').onclick=hide;$('hidePlayer').onclick=hide;$('taskPlayer').onclick=()=>win.hidden?restore():hide();
-$('expand').onclick=()=>{const expanded=win.classList.toggle('expanded');$('expand').setAttribute('aria-pressed',String(expanded));win.style.left='';win.style.top='';win.style.position='';win.style.margin=''};
+$('minimize').onclick=()=>win.classList.contains('minimized')?restore():hide();$('hidePlayer').onclick=closeWindow;$('taskPlayer').onclick=()=>win.hidden||win.classList.contains('minimized')?restore():hide();
+$('expand').onclick=()=>{if(win.classList.contains('minimized')){restore();return}const expanded=win.classList.toggle('expanded');$('expand').setAttribute('aria-pressed',String(expanded));win.style.left='';win.style.top='';win.style.position='';win.style.margin=''};
 $('start').onclick=()=>{const open=$('startMenu').hidden;$('startMenu').hidden=!open;$('start').setAttribute('aria-expanded',String(open))};
 document.addEventListener('pointerdown',e=>{if(!$('startMenu').contains(e.target)&&!$('start').contains(e.target)){$('startMenu').hidden=true;$('start').setAttribute('aria-expanded','false')}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('startMenu').hidden=true;$('start').setAttribute('aria-expanded','false')}});
@@ -16,7 +17,7 @@ function theme(value){document.body.dataset.theme=value;document.querySelectorAl
 let saved;try{saved=localStorage.getItem('noctra-theme')}catch{}theme(['violet','cyan','rose'].includes(saved)?saved:'violet');document.querySelectorAll('button[data-theme]').forEach(b=>b.onclick=()=>theme(b.dataset.theme));
 $('rainToggle').onchange=e=>document.body.classList.toggle('rain-off',!e.target.checked);
 function clock(){const now=new Date();$('clock').textContent=new Intl.DateTimeFormat('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Sao_Paulo'}).format(now);$('clock').dateTime=now.toISOString();$('clock').title='Horário de Brasília'}clock();setInterval(clock,10000);
-let drag=null;const handle=$('dragHandle');handle.addEventListener('pointerdown',e=>{if(e.target.closest('button')||innerWidth<650)return;const r=win.getBoundingClientRect();drag={x:e.clientX-r.left,y:e.clientY-r.top};win.style.position='fixed';win.style.left=r.left+'px';win.style.top=r.top+'px';win.style.margin='0';handle.setPointerCapture(e.pointerId)});handle.addEventListener('pointermove',e=>{if(!drag)return;win.style.left=Math.max(0,Math.min(innerWidth-win.offsetWidth,e.clientX-drag.x))+'px';win.style.top=Math.max(0,Math.min(innerHeight-65,e.clientY-drag.y))+'px'});handle.addEventListener('pointerup',()=>drag=null);handle.addEventListener('pointercancel',()=>drag=null);window.addEventListener('resize',()=>{win.style.position='';win.style.left='';win.style.top='';win.style.margin=''});
+let drag=null;const handle=$('dragHandle');handle.addEventListener('pointerdown',e=>{if(e.target.closest('button')||innerWidth<650||win.classList.contains('minimized'))return;const r=win.getBoundingClientRect();drag={x:e.clientX-r.left,y:e.clientY-r.top};win.style.position='fixed';win.style.left=r.left+'px';win.style.top=r.top+'px';win.style.margin='0';handle.setPointerCapture(e.pointerId)});handle.addEventListener('pointermove',e=>{if(!drag)return;win.style.left=Math.max(0,Math.min(innerWidth-win.offsetWidth,e.clientX-drag.x))+'px';win.style.top=Math.max(0,Math.min(innerHeight-65,e.clientY-drag.y))+'px'});handle.addEventListener('pointerup',()=>drag=null);handle.addEventListener('pointercancel',()=>drag=null);window.addEventListener('resize',()=>{win.style.position='';win.style.left='';win.style.top='';win.style.margin=''});
 // Reveal the collection after a successful native form submission.
 $('importForm').addEventListener('submit',()=>collection(true));
 
