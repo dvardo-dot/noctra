@@ -1,5 +1,6 @@
 import {tracks} from './tracks.js';
 import {createMedia} from './media.js';
+const icon=name=>'<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#icon-'+name+'"></use></svg>';
 const $=id=>document.getElementById(id), audio=createMedia($('audio'));
 let current=0, random=false, repeat=0, actualPlaying=false, loadSerial=0, swappingTimer, angle=0, speed=0, lastFrame=0;
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
@@ -7,7 +8,7 @@ const urls=[];const fmt=n=>Number.isFinite(n)?`${Math.floor(n/60)}:${String(Math
 const message=t=>$('status').textContent=t;
 function blobURL(blob){const u=URL.createObjectURL(blob);urls.push(u);return u}
 function renderList(){ $('tracks').replaceChildren();tracks.forEach((t,i)=>{const b=document.createElement('button');b.className='track'+(i===current?' selected':'');b.setAttribute('aria-label',`Reproduzir ${t.title}, ${t.artist}`);if(i===current)b.setAttribute('aria-current','true');const img=document.createElement('img');img.src=t.cover;img.alt='';const info=document.createElement('span');info.className='info';const title=document.createElement('strong');title.textContent=t.title;const artist=document.createElement('small');artist.textContent=t.artist;if(t.demo){const tag=document.createElement('em');tag.textContent='DEMO';artist.append(tag)}info.append(title,artist);const bars=document.createElement('span');bars.className='bars';bars.setAttribute('aria-hidden','true');bars.innerHTML='<i></i><i></i><i></i>';const time=document.createElement('time');time.textContent=fmt(t.duration);b.append(img,info,bars,time);b.addEventListener('click',()=>select(i,true));$('tracks').append(b)});$('count').textContent=String(tracks.length).padStart(2,'0');playingUI()}
-function playingUI(){document.body.classList.toggle('is-playing',actualPlaying);[...$('tracks').children].forEach((b,i)=>b.classList.toggle('playing',actualPlaying&&i===current));$('play').textContent=actualPlaying?'Ⅱ':'▶';$('play').style.paddingLeft=actualPlaying?'0':'10px';$('play').setAttribute('aria-label',actualPlaying?'Pausar':'Reproduzir')}
+function playingUI(){document.body.classList.toggle('is-playing',actualPlaying);[...$('tracks').children].forEach((b,i)=>b.classList.toggle('playing',actualPlaying&&i===current));$('play').innerHTML=icon(actualPlaying?'pause':'play');$('play').setAttribute('aria-label',actualPlaying?'Pausar':'Reproduzir')}
 function setState(state,playing=false){actualPlaying=playing;$('state').textContent=state;playingUI()}
 function metadata(){const t=tracks[current];$('title').textContent=t.title;$('artist').replaceChildren(document.createTextNode(t.artist));if(t.demo){const s=document.createElement('span');s.textContent='• DEMONSTRAÇÃO';$('artist').append(s)}document.querySelector('.disc-art').style.backgroundImage=`url("${(t.discArt||t.cover).replaceAll('"','%22')}")`;$('duration').textContent=fmt(t.duration);renderList()}
 function source(){const t=tracks[current];return t.youtubeId?'youtube:'+t.youtubeId:t.src}
@@ -17,7 +18,7 @@ metadata();if(play)start();else setState('PRONTO PARA TOCAR');swappingTimer=setT
 function advance(delta=1){if(!tracks.length)return;if(delta<0&&audio.currentTime>3){audio.currentTime=0;return}let index;if(random&&tracks.length>1){index=Math.floor(Math.random()*(tracks.length-1));if(index>=current)index++}else index=(current+delta+tracks.length)%tracks.length;select(index,true)}
 $('play').onclick=()=>{if(!audio.paused){audio.pause()}else start()};$('prev').onclick=()=>advance(-1);$('next').onclick=()=>advance(1);
 $('shuffle').onclick=()=>{random=!random;$('shuffle').setAttribute('aria-pressed',String(random));message(random?'Reprodução aleatória ativada.':'Reprodução aleatória desativada.')};
-$('repeat').onclick=()=>{repeat=(repeat+1)%3;$('repeat').setAttribute('aria-pressed',String(repeat>0));$('repeat').textContent=repeat===2?'↻₁':'↻';const text=['Repetição: desligada','Repetição: lista','Repetição: faixa'][repeat];$('repeat').setAttribute('aria-label',text);$('repeat').title=text;message(text)};
+$('repeat').onclick=()=>{repeat=(repeat+1)%3;$('repeat').setAttribute('aria-pressed',String(repeat>0));$('repeat').innerHTML=icon(repeat===2?'repeatone':'repeat');const text=['Repetição: desligada','Repetição: lista','Repetição: faixa'][repeat];$('repeat').setAttribute('aria-label',text);$('repeat').title=text;message(text)};
 audio.volume=.65;audio.playbackRate=1;
 $('volume').oninput=e=>{audio.volume=Number(e.target.value);$('volValue').textContent=Math.round(audio.volume*100)+'%';e.target.style.setProperty('--pct',audio.volume*100+'%')};
 $('progress').oninput=e=>{if(Number.isFinite(audio.duration)&&audio.duration>0){audio.currentTime=Number(e.target.value);updateProgress()}};
