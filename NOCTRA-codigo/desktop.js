@@ -1,0 +1,25 @@
+const $=id=>document.getElementById(id),win=$('playerWindow');
+function restore(){win.hidden=false;$('taskPlayer').classList.remove('inactive');$('startMenu').hidden=true;$('start').setAttribute('aria-expanded','false')}
+function hide(){window.dispatchEvent(new Event('noctra-window-hide'));win.hidden=true;$('taskPlayer').classList.add('inactive');$('taskPlayer').focus()}
+function collection(open){$('collection').hidden=!open;$('toggleCollection').setAttribute('aria-expanded',String(open))}
+$('toggleCollection').onclick=()=>collection($('collection').hidden);
+$('desktopPlayer').onclick=restore;$('menuPlayer').onclick=restore;
+for(const id of ['desktopCollection','menuCollection'])$(id).onclick=()=>{restore();collection(true)};
+$('minimize').onclick=hide;$('hidePlayer').onclick=hide;$('taskPlayer').onclick=()=>win.hidden?restore():hide();
+$('expand').onclick=()=>{const expanded=win.classList.toggle('expanded');$('expand').setAttribute('aria-pressed',String(expanded));win.style.left='';win.style.top='';win.style.position='';win.style.margin=''};
+$('start').onclick=()=>{const open=$('startMenu').hidden;$('startMenu').hidden=!open;$('start').setAttribute('aria-expanded',String(open))};
+document.addEventListener('pointerdown',e=>{if(!$('startMenu').contains(e.target)&&!$('start').contains(e.target)){$('startMenu').hidden=true;$('start').setAttribute('aria-expanded','false')}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('startMenu').hidden=true;$('start').setAttribute('aria-expanded','false')}});
+let settingsOpener;for(const id of ['settings','desktopSettings','menuSettings'])$(id).onclick=e=>{settingsOpener=e.currentTarget;$('startMenu').hidden=true;$('start').setAttribute('aria-expanded','false');$('settingsDialog').showModal()};
+document.querySelectorAll('.settings-close').forEach(b=>b.onclick=()=>$('settingsDialog').close());$('settingsDialog').addEventListener('close',()=>settingsOpener?.focus());
+function theme(value){document.body.dataset.theme=value;document.querySelectorAll('[data-theme]').forEach(b=>{if(b.tagName==='BUTTON')b.setAttribute('aria-pressed',String(b.dataset.theme===value))});try{localStorage.setItem('noctra-theme',value)}catch{}}
+let saved;try{saved=localStorage.getItem('noctra-theme')}catch{}theme(['violet','cyan','rose'].includes(saved)?saved:'violet');document.querySelectorAll('button[data-theme]').forEach(b=>b.onclick=()=>theme(b.dataset.theme));
+$('rainToggle').onchange=e=>document.body.classList.toggle('rain-off',!e.target.checked);
+function clock(){const now=new Date();$('clock').textContent=new Intl.DateTimeFormat('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Sao_Paulo'}).format(now);$('clock').dateTime=now.toISOString();$('clock').title='Horário de Brasília'}clock();setInterval(clock,10000);
+let drag=null;const handle=$('dragHandle');handle.addEventListener('pointerdown',e=>{if(e.target.closest('button')||innerWidth<650)return;const r=win.getBoundingClientRect();drag={x:e.clientX-r.left,y:e.clientY-r.top};win.style.position='fixed';win.style.left=r.left+'px';win.style.top=r.top+'px';win.style.margin='0';handle.setPointerCapture(e.pointerId)});handle.addEventListener('pointermove',e=>{if(!drag)return;win.style.left=Math.max(0,Math.min(innerWidth-win.offsetWidth,e.clientX-drag.x))+'px';win.style.top=Math.max(0,Math.min(innerHeight-65,e.clientY-drag.y))+'px'});handle.addEventListener('pointerup',()=>drag=null);handle.addEventListener('pointercancel',()=>drag=null);window.addEventListener('resize',()=>{win.style.position='';win.style.left='';win.style.top='';win.style.margin=''});
+// Reveal the collection after a successful native form submission.
+$('importForm').addEventListener('submit',()=>collection(true));
+
+const wallpaperChoices={original:{file:'assets/nightcore-wallpaper.jpg',label:'Gótico original'},starlight:{file:'assets/wallpaper-starlight.jpg',label:'Miku · céu estrelado'},xp:{file:'assets/wallpaper-xp.jpg',label:'Anime · Windows XP'},music:{file:'assets/wallpaper-music.jpg',label:'Miku · música'},win7:{file:'assets/wallpaper-win7.jpg',label:'Miku · Windows 7'}};
+function setWallpaper(id,announce=true){const chosen=wallpaperChoices[id]||wallpaperChoices.original;const selected=wallpaperChoices[id]?id:'original';document.body.style.setProperty('--wallpaper',`url("${chosen.file}")`);document.querySelectorAll('button[data-wallpaper]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.wallpaper===selected)));let saved=true;try{localStorage.setItem('noctra-wallpaper',selected)}catch{saved=false}if(announce)$('wallpaperFeedback').textContent=chosen.label+(saved?' — fundo selecionado e salvo.':' — fundo selecionado para esta sessão.');}
+let savedWallpaper;try{savedWallpaper=localStorage.getItem('noctra-wallpaper')}catch{}setWallpaper(savedWallpaper||'original',false);document.querySelectorAll('button[data-wallpaper]').forEach(button=>button.addEventListener('click',()=>setWallpaper(button.dataset.wallpaper)));

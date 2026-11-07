@@ -1,0 +1,38 @@
+# NOCTRA
+Código completo e independente do player. HTML, CSS e JavaScript nativo, sem bibliotecas externas para a interface. O YouTube é utilizado apenas para Join Me.
+
+## Abrir no VS Code
+1. Extraia o ZIP e abra esta pasta no VS Code.
+2. No terminal, execute `npm start` (é necessário ter Node.js).
+3. Abra http://127.0.0.1:5500 no navegador.
+
+Não precisa executar npm install. Para parar o servidor, use Ctrl+C. Os módulos JavaScript precisam de um servidor HTTP; abrir index.html por duplo clique não é suficiente.
+
+## Suas músicas
+A coleção está em tracks.js:
+- Nightcore - Join Me: YouTube FQK3z21Hy9Q.
+- Nightcore - L’amour Toujours: audio/nightcore-lamour-toujours.mp3.
+- Nightcore - 18 (English): audio/nightcore-18.mp3.
+
+O pacote contém os dois MP3. Publicando esses arquivos, serão essas mesmas músicas, sem faixas demonstrativas. Aleatório apenas muda a ordem da coleção cadastrada. Join Me depende de internet e da disponibilidade de incorporação do vídeo no YouTube.
+
+Para acrescentar uma música, copie o áudio para audio/ e adicione um objeto em tracks.js com id, title, artist, src, cover e duration (segundos). discArt é opcional; sem ele, o CD usa cover. Para um vídeo do YouTube, use youtubeId no lugar de src. A duração é atualizada pelo áudio real durante o carregamento.
+
+O botão de adicionar arquivos pelo navegador vale apenas para a sessão; para disponibilizar as músicas no site publicado, cadastre os arquivos em tracks.js e envie a pasta audio/ junto.
+
+## Repositório e publicação
+Envie o conteúdo desta pasta ao seu repositório, incluindo audio/ e assets/. index.html já está na raiz. O projeto pode ser hospedado como site estático, sem build. server.cjs é apenas para desenvolvimento local. Nenhuma conta, chave, token ou configuração de hospedagem do Codex é necessária.
+
+Não exclua os MP3 do repositório se quiser que sejam carregados pelo site hospedado. As URLs e caminhos são relativos para funcionar também em subpastas.
+
+## Arquivos principais
+- index.html: interface e mascotes SVG.
+- style.css: visual retrô, layout responsivo e animações.
+- app.js: seleção de faixas, controles e estado de reprodução.
+- media.js: integração entre áudio nativo e YouTube.
+- desktop.js: janelas, relógio e seleção de fundo.
+- tracks.js: cadastro das músicas.
+- assets/: capas e planos de fundo.
+- audio/: arquivos MP3 enviados pelo usuário.
+
+Miku e Giratina acompanham o estado real da reprodução. Movimento reduzido deixa as animações estáticas. A imagem de fundo escolhida em Aparência é salva por navegador e domínio; visitantes começam com o fundo padrão. Não há início automático de áudio.
