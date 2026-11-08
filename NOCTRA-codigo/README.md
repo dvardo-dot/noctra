@@ -53,3 +53,22 @@ desktop-pets.js reutiliza as ilustrações SVG de Miku e Giratina da interface. 
 
 ## Winamp integrado ao CD
 O Winamp fica dentro da janela principal, logo abaixo do disco e dos controles, e abre sem iniciar áudio. Recolher esconde apenas o painel Winamp e mantém a música tocando; os atalhos Winamp o reabrem. Nos MP3 tocados pelo Winamp, o CD acompanha a capa, o título e o estado real do elemento de áudio, e os controles superiores comandam play/pausa, faixa, posição, volume, aleatório e repetição. O equalizador continua processando o áudio desse player. Join Me permanece no YouTube. A sincronização utiliza o elemento de áudio interno da versão fixa Webamp 2.3.1; confira essa integração se atualizar a biblioteca. A preferência de movimento reduzido continua respeitada.
+
+## Escolha de skins e novos wallpapers
+O seletor Skin do Winamp e o botão Ver prévias permitem escolher entre a Angels Eyes e as oito skins pedidas. A escolha é salva na chave noctra-winamp-skin do localStorage. A troca usa setSkinFromUrl/skinIsLoaded na mesma instância Webamp: mantém faixa, posição, volume e ajustes do equalizador. Se houver erro, a interface tenta restaurar a skin anterior. Com armazenamento bloqueado, a escolha funciona na sessão.
+
+Arquivos originais do Winamp Skin Museum, preservados sem edição; créditos e readmes estão dentro dos próprios arquivos WSZ. Catálogo em winamp-skins.js e miniaturas em assets/skins/.
+
+| Nome original | MD5 no museu |
+| --- | --- |
+| Angels_Eyes.wsz | 580ed76ffaa20948b39d6d9dca060655 |
+| Inuyasha - Together Always 1.wsz | c1eb757a599a192b129c3631534e4ebc |
+| serial_experiments_lain.wsz | 479b695923fbd20525ab14fe8eab6b8b |
+| pokemon_silver_amp.wsz | 08397a914345b3461b211471adcd69c0 |
+| Rinoa_02_by_Eido.wsz | e6a469301a2fbcc0fb62c7a1ec057092 |
+| Forgive_Me.wsz | 250a5f055fe6026e7044acc961626a7a |
+| Rei_Ayanami_Nge_Skin_7.wsz | 707f2795e50806b5702a75cfc2dc987f |
+| Asuka_Skin.wsz | f5f60f3a1da669fd9baf0d604ae3d5c1 |
+| Neon Genesis Evangelion - AR Eva Matrix - Matrix.wsz | 9450a1aff1d9ae23b9ed6a8767ec13bd |
+
+A galeria em Aparência tem 11 wallpapers: os cinco anteriores e os seis JPG enviados nesta atualização (Rei azul, Rei nas nuvens, Miku Design Interlude, Miku Media Player, Project DIVA e OS-tan). As imagens foram copiadas sem edição e a preferência continua salva por navegador/domínio.
