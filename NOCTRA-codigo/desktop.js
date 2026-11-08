@@ -1,5 +1,5 @@
 const $=id=>document.getElementById(id),win=$('playerWindow');
-function restore(){win.classList.remove('minimized');$('minimize').setAttribute('aria-label','Minimizar player');$('minimize').title='Minimizar';win.hidden=false;$('taskPlayer').classList.remove('inactive');$('startMenu').hidden=true;$('start').setAttribute('aria-expanded','false')}
+function restore(){window.dispatchEvent(new Event('noctra:show'));win.classList.remove('minimized');$('minimize').setAttribute('aria-label','Minimizar player');$('minimize').title='Minimizar';win.hidden=false;$('taskPlayer').classList.remove('inactive');$('startMenu').hidden=true;$('start').setAttribute('aria-expanded','false')}
 function hide(){const video=$('youtubePanel');if(video&&!video.hidden){win.hidden=false;win.classList.add('minimized');$('minimize').setAttribute('aria-label','Restaurar player');$('minimize').title='Restaurar';}else{win.classList.remove('minimized');win.hidden=true;}$('taskPlayer').classList.add('inactive');$('taskPlayer').focus()}
 function closeWindow(){window.dispatchEvent(new Event('noctra-window-hide'));win.classList.remove('minimized');win.hidden=true;$('taskPlayer').classList.add('inactive');$('taskPlayer').focus()}
 function collection(open){$('collection').hidden=!open;$('toggleCollection').setAttribute('aria-expanded',String(open))}

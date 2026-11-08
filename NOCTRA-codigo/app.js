@@ -12,7 +12,7 @@ function playingUI(){document.body.classList.toggle('is-playing',actualPlaying);
 function setState(state,playing=false){actualPlaying=playing;$('state').textContent=state;playingUI()}
 function metadata(){const t=tracks[current];$('title').textContent=t.title;$('artist').replaceChildren(document.createTextNode(t.artist));if(t.demo){const s=document.createElement('span');s.textContent='• DEMONSTRAÇÃO';$('artist').append(s)}document.querySelector('.disc-art').style.backgroundImage=`url("${(t.discArt||t.cover).replaceAll('"','%22')}")`;$('duration').textContent=fmt(t.duration);renderList()}
 function source(){const t=tracks[current];return t.youtubeId?'youtube:'+t.youtubeId:t.src}
-async function start(){if(!audio.src){audio.src=source();audio.load()}const serial=loadSerial;setState('CARREGANDO');try{await audio.play()}catch(e){if(serial!==loadSerial||e.name==='AbortError')return;setState('NÃO FOI POSSÍVEL TOCAR');message(tracks[current].youtubeId?'Não foi possível carregar o YouTube. Tente novamente ou abra o vídeo pelo link.':'Não foi possível tocar este arquivo. Verifique o formato ou escolha outra faixa.')}}
+async function start(){window.dispatchEvent(new Event('noctra:will-play'));if(!audio.src){audio.src=source();audio.load()}const serial=loadSerial;setState('CARREGANDO');try{await audio.play()}catch(e){if(serial!==loadSerial||e.name==='AbortError')return;setState('NÃO FOI POSSÍVEL TOCAR');message(tracks[current].youtubeId?'Não foi possível carregar o YouTube. Tente novamente ou abra o vídeo pelo link.':'Não foi possível tocar este arquivo. Verifique o formato ou escolha outra faixa.')}}
 function select(index,play=true){if(index===current&&audio.src){if(play)start();return}loadSerial++;audio.pause();current=index;setState('TROCANDO DISCO');$('discSwap').classList.add('swapping');clearTimeout(swappingTimer);audio.removeAttribute('src');audio.load();$('progress').value=0;$('progress').style.setProperty('--pct','0%');$('progress').disabled=true;$('elapsed').textContent='0:00'; // play must stay in the original user gesture
 metadata();if(play)start();else setState('PRONTO PARA TOCAR');swappingTimer=setTimeout(()=>{$('discSwap').classList.remove('swapping')},220)}
 function advance(delta=1){if(!tracks.length)return;if(delta<0&&audio.currentTime>3){audio.currentTime=0;return}let index;if(random&&tracks.length>1){index=Math.floor(Math.random()*(tracks.length-1));if(index>=current)index++}else index=(current+delta+tracks.length)%tracks.length;select(index,true)}
@@ -35,3 +35,6 @@ window.addEventListener('pagehide',e=>{if(!e.persisted)urls.forEach(URL.revokeOb
 
 
 window.addEventListener('noctra-window-hide',()=>{if(tracks[current].youtubeId){audio.pause();message('YouTube pausado. Reabra o player para continuar.')}});
+
+window.addEventListener('noctra:pause',()=>audio.pause());
+window.addEventListener('noctra:join-me',()=>{const index=tracks.findIndex(track=>track.youtubeId==='FQK3z21Hy9Q');if(index>=0)select(index,true)});
