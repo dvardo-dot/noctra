@@ -2,36 +2,54 @@ import {tracks} from './tracks.js';
 const $=id=>document.getElementById(id),shell=$('winampWindow'),host=$('webampHost'),status=$('winampStatus');
 const EQ_BANDS=['preamp',60,170,310,600,1000,3000,6000,12000,14000,16000];
 export function resetEqualizer(instance){if(!instance?.store?.dispatch)throw Error('Equalizador indisponível');for(const band of EQ_BANDS)instance.store.dispatch({type:'SET_BAND_VALUE',band,value:50});instance.store.dispatch({type:'SET_EQ_ON'});}
-let instance=null,loading=null,owner=false,closed=false,lastPlaying=false;
+let instance=null,loading=null,owner=false,closed=false,buffering=false,nativeAudio=null,localTracks=[];
 const timed=(promise,ms=30000)=>new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('Tempo de carregamento excedido')),ms);promise.then(value=>{clearTimeout(timer);resolve(value)},error=>{clearTimeout(timer);reject(error)})});
-function syncPlayback(){if(!owner||!instance)return;const playing=instance.getMediaStatus()==='PLAYING';if(playing!==lastPlaying){lastPlaying=playing;document.body.classList.toggle('is-playing',playing);} }
-function activate(){window.dispatchEvent(new Event('noctra:pause'));$('playerWindow').hidden=true;shell.hidden=false;owner=true;closed=false;lastPlaying=false;$('taskPlayer').classList.add('inactive');$('taskWinamp').classList.remove('inactive');instance.reopen();syncPlayback();}
-function leave(){if(instance)instance.pause();owner=false;lastPlaying=false;document.body.classList.remove('is-playing');shell.hidden=true;$('taskWinamp').classList.add('inactive');}
-function showNoctra(){leave();$('desktopPlayer').click();}
+function showParent(){$('desktopPlayer').click();}
+function activate(){if(!owner)window.dispatchEvent(new Event('noctra:release-native'));owner=true;shell.hidden=false;showParent();$('taskWinamp').classList.remove('inactive');if(closed){instance.reopen();closed=false;}syncPlayback();}
+function syncPlayback(){
+ if(!owner||!instance)return;
+ const state=instance.store.getState(),playing=!!nativeAudio&&!nativeAudio.paused&&!nativeAudio.seeking&&nativeAudio.readyState>=3&&!buffering&&!nativeAudio.error;
+ const time=nativeAudio?.currentTime||0,duration=nativeAudio?.duration||0;
+ window.dispatchEvent(new CustomEvent('noctra:winamp-state',{detail:{url:nativeAudio?.currentSrc||nativeAudio?.src||localTracks[0]?.url,playing,time,duration,volume:(state.media.volume||0)/100,shuffle:instance.isShuffleEnabled(),repeat:instance.isRepeatEnabled(),state:playing?'REPRODUZINDO':nativeAudio&&!nativeAudio.paused?'CARREGANDO':'PAUSADO'}}));
+}
+function leave(){const wasOwner=owner;if(instance&&nativeAudio&&!nativeAudio.paused)instance.pause();owner=false;if(wasOwner)window.dispatchEvent(new Event('noctra:winamp-release'));$('taskWinamp').classList.add('inactive');}
+function useCd(){leave();showParent();}
+window.noctraWinamp={
+ get canControl(){return !!instance&&!!nativeAudio;},get active(){return owner&&!!instance;},get paused(){return !nativeAudio||nativeAudio.paused;},get currentTime(){return nativeAudio?.currentTime||0;},
+ play(){if(instance){activate();instance.play();}},pause(){if(instance&&nativeAudio&&!nativeAudio.paused)instance.pause();syncPlayback();},seek(time){instance?.seekToTime(time);syncPlayback();},
+ next(){instance?.nextTrack();},previous(){instance?.previousTrack();},setVolume(volume){instance?.setVolume(Math.round(volume*100));},
+ shuffle(){instance?.toggleShuffle();syncPlayback();},repeat(){instance?.toggleRepeat();syncPlayback();},
+ select(index,play){const track=tracks[index],url=track?.src?new URL(track.src,location.href).href:null;let i=localTracks.findIndex(t=>t.url===url);if(i<0||!instance)return false;activate();if((nativeAudio.currentSrc||nativeAudio.src)!==url)instance.setCurrentTrack(i);if(play)instance.play();syncPlayback();return true;}
+};
 async function initialize(){
  const {default:Webamp}=await timed(import('https://cdn.jsdelivr.net/npm/webamp@2.3.1/built/webamp.bundle.min.mjs'));
  if(!Webamp.browserIsSupported())throw Error('Este navegador não oferece suporte ao Webamp');
- const localTracks=tracks.filter(track=>track.src&&!track.youtubeId).map(track=>({url:new URL(track.src,location.href).href,duration:track.duration,metaData:{title:track.title,artist:track.artist}}));
+ localTracks=tracks.filter(track=>track.src&&!track.youtubeId).map(track=>({url:new URL(track.src,location.href).href,duration:track.duration,metaData:{title:track.title,artist:track.artist}}));
  instance=new Webamp({initialSkin:{url:new URL('assets/Angels_Eyes.wsz',location.href).href},initialTracks:localTracks,enableHotkeys:false,enableMediaSession:false,zIndex:3,windowLayout:{main:{position:{top:0,left:0},closed:false},equalizer:{position:{top:116,left:0},closed:false},playlist:{position:{top:232,left:0},closed:false,size:{extraHeight:0,extraWidth:0}}}});
- await timed(instance.renderInto(host));
- instance.setVolume(65);
+ await timed(instance.renderInto(host));instance.setVolume(65);
+ // Pinned Webamp 2.3.1 media element: use real audio events for the shared CD display.
+ nativeAudio=instance.media._source._audio;
+ nativeAudio.addEventListener('play',()=>{if(!owner)activate();});
+ for(const name of ['playing','pause','timeupdate','durationchange','seeked','ended','error'])nativeAudio.addEventListener(name,()=>{if(name==='playing'||name==='seeked')buffering=false;syncPlayback();});
+ nativeAudio.addEventListener('waiting',()=>{buffering=true;syncPlayback();});
+ nativeAudio.addEventListener('seeking',()=>{buffering=true;syncPlayback();});
  instance.onMinimize(()=>{shell.hidden=true;$('taskWinamp').classList.add('inactive');});
- instance.onClose(()=>{closed=true;showNoctra();});
- instance.onTrackDidChange(track=>{if(track?.metaData?.title)status.textContent=track.metaData.title;});
+ instance.onClose(()=>{closed=true;leave();shell.hidden=true;});
+ instance.onTrackDidChange(track=>{buffering=true;if(track?.metaData?.title)status.textContent=track.metaData.title;syncPlayback();});
  instance.store.subscribe(syncPlayback);
- $('resetEq').disabled=false;
- status.textContent='Sua skin Angels Eyes. Clique em play para ouvir os MP3.';
+ $('resetEq').disabled=false;status.textContent='Angels Eyes · Seus MP3 com equalizador. Os controles do CD acompanham o Winamp.';
 }
-export async function openWinamp(){
- shell.hidden=false;status.textContent=instance&&!closed?'Clique em play ou ajuste o equalizador.':'Carregando Webamp e a skin Angels Eyes…';
- try{if(!instance||loading){if(!loading)loading=initialize();await loading;loading=null;}activate();}
- catch(error){status.textContent='Não foi possível abrir o Winamp. Verifique a conexão e tente novamente.';$('resetEq').disabled=true;console.error('NOCTRA / Webamp:',error);if(instance){try{instance.dispose()}catch{}instance=null;host.replaceChildren();}loading=null;}
+export async function openWinamp({takeControl=true,scroll=true}={}){
+ shell.hidden=false;
+ try{if(!instance||loading){status.textContent='Carregando Webamp e a skin Angels Eyes…';if(!loading)loading=initialize();await loading;loading=null;}
+ if(takeControl||scroll)showParent();if(takeControl)activate();else if(closed){instance.reopen();closed=false;}
+ if(scroll)shell.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'nearest'});
+ }catch(error){status.textContent='Não foi possível abrir o Winamp. Verifique a conexão e tente novamente.';$('resetEq').disabled=true;console.error('NOCTRA / Webamp:',error);if(instance){try{instance.dispose()}catch{}instance=null;nativeAudio=null;host.replaceChildren();}loading=null;}
 }
-for(const id of ['desktopWinamp','showWinamp','menuWinamp'])$(id).addEventListener('click',()=>{ $('startMenu').hidden=true;$('start').setAttribute('aria-expanded','false');openWinamp();});
-$('taskWinamp').addEventListener('click',()=>{if(owner&&!shell.hidden){shell.hidden=true;$('taskWinamp').classList.add('inactive');}else openWinamp();});
-$('backToNoctra').addEventListener('click',showNoctra);
-$('joinMeNoctra').addEventListener('click',()=>{showNoctra();window.dispatchEvent(new Event('noctra:join-me'));});
+for(const id of ['desktopWinamp','showWinamp','menuWinamp'])$(id).addEventListener('click',()=>{$('startMenu').hidden=true;$('start').setAttribute('aria-expanded','false');openWinamp();});
+$('taskWinamp').addEventListener('click',()=>{const parent=$('playerWindow');if(!parent.hidden&&!parent.classList.contains('minimized')&&!shell.hidden){shell.hidden=true;$('taskWinamp').classList.add('inactive');}else openWinamp();});
+$('backToNoctra').addEventListener('click',()=>{shell.hidden=true;$('taskWinamp').classList.add('inactive');});
+$('joinMeNoctra').addEventListener('click',()=>{useCd();window.dispatchEvent(new Event('noctra:join-me'));});
 $('resetEq').addEventListener('click',()=>{try{resetEqualizer(instance);status.textContent='Equalizador resetado: todas as bandas e o pré-amplificador em 0 dB.';}catch(error){status.textContent=error.message;}});
 window.addEventListener('noctra:will-play',leave);
-window.addEventListener('noctra:show',leave);
-if(new URLSearchParams(location.search).get('player')==='winamp')openWinamp();
+openWinamp({takeControl:new URLSearchParams(location.search).get('player')==='winamp',scroll:false});

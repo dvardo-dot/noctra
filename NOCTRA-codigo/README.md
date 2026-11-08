@@ -50,3 +50,6 @@ Para abrir diretamente esse modo, use ?player=winamp no endereço do site.
 
 ## Companheiros do desktop
 desktop-pets.js reutiliza as ilustrações SVG de Miku e Giratina da interface. No modo de seguir, acompanham o mouse ou o último toque e não interceptam cliques. A opção em Aparência permite desligar esse comportamento e mostrar os personagens junto à minutagem. A preferência é salva no navegador. Com movimento reduzido, os companheiros ficam parados na parte inferior da tela. A animação é suspensa quando a página está oculta.
+
+## Winamp integrado ao CD
+O Winamp fica dentro da janela principal, logo abaixo do disco e dos controles, e abre sem iniciar áudio. Recolher esconde apenas o painel Winamp e mantém a música tocando; os atalhos Winamp o reabrem. Nos MP3 tocados pelo Winamp, o CD acompanha a capa, o título e o estado real do elemento de áudio, e os controles superiores comandam play/pausa, faixa, posição, volume, aleatório e repetição. O equalizador continua processando o áudio desse player. Join Me permanece no YouTube. A sincronização utiliza o elemento de áudio interno da versão fixa Webamp 2.3.1; confira essa integração se atualizar a biblioteca. A preferência de movimento reduzido continua respeitada.
