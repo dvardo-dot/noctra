@@ -18,8 +18,14 @@ O pacote contém os dois MP3. Publicando esses arquivos, serão essas mesmas mú
 
 Para acrescentar uma música, copie o áudio para audio/ e adicione um objeto em tracks.js com id, title, artist, src, cover e duration (segundos). discArt é opcional; sem ele, o CD usa cover. Para um vídeo do YouTube, use youtubeId no lugar de src. A duração é atualizada pelo áudio real durante o carregamento.
 
-O botão de adicionar arquivos pelo navegador vale apenas para a sessão; para disponibilizar as músicas no site publicado, cadastre os arquivos em tracks.js e envie a pasta audio/ junto.
+Músicas adicionadas pelo navegador ficam em IndexedDB e continuam disponíveis nesse navegador e domínio após reabrir o site. Playlists e ajustes ficam em localStorage. Os arquivos importados não são enviados ao servidor; limpar os dados do navegador apaga as cópias locais. Para disponibilizar faixas padrão para todos os visitantes, cadastre-as em tracks.js e envie a pasta audio/ junto.
 
+## Playlists e conversor MP3
+As playlists são salvas por navegador. Crie, renomeie, exclua e abra uma playlist para ver somente as faixas dela. Cada faixa pode ser removida da playlist sem sair da biblioteca. **Excluir da biblioteca** pede confirmação e apaga a cópia guardada no IndexedDB, mas preserva o arquivo original do computador e os arquivos de demonstração do site.
+
+O conversor MP3 roda localmente no navegador por Web Audio e Web Worker; não usa backend nem API externa e não tem custo por conversão. Aceita WAV, MP3, M4A/AAC, OGG/OGA, FLAC, WebM e Opus quando o navegador consegue decodificar o formato. O limite é 25 MB e 20 minutos. Escolha 128, 192, 256 ou 320 kbps e baixe o MP3 quando o progresso chegar a 100%. Arquivos acima do limite, formatos sem decoder e falhas de conversão mostram uma mensagem no conversor.
+
+O encoder incluído é lamejs 1.2.1 sob LGPL-3.0. O bundle está em `vendor/lame.min.js`, com licença, README e fontes correspondentes em `vendor/`.
 ## Repositório e publicação
 Envie o conteúdo desta pasta ao seu repositório, incluindo audio/ e assets/. index.html já está na raiz. O projeto pode ser hospedado como site estático, sem build. server.cjs é apenas para desenvolvimento local. Nenhuma conta, chave, token ou configuração de hospedagem do Codex é necessária.
 
@@ -28,7 +34,9 @@ Não exclua os MP3 do repositório se quiser que sejam carregados pelo site hosp
 ## Arquivos principais
 - index.html: interface e mascotes SVG.
 - style.css: visual retrô, layout responsivo e animações.
-- app.js: seleção de faixas, controles e estado de reprodução.
+- app.js: controles, playlists, armazenamento da biblioteca no navegador e remoção de faixas.
+- library-store.js: persistência local das músicas em IndexedDB.
+- converter.js e converter.worker.js: conversão de áudio para MP3 fora da thread visual.
 - media.js: integração entre áudio nativo e YouTube.
 - desktop.js: janelas, relógio e seleção de fundo.
 - tracks.js: cadastro das músicas.
