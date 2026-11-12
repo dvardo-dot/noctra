@@ -38,23 +38,30 @@ export function createMedia(native){
 // Optional local-file DSP chain. The source file stays untouched; effects are applied only during playback.
 export function createAudioEffects(native){
  const frequencies=[60,120,250,500,1000,2000,4000,8000,12000,16000];
- let context=null,source=null,filters=[],available=true,analyser=null;
- const values={bands:Array(frequencies.length).fill(0),rate:1,pitchShift:false};
+ let context=null,source=null,filters=[],available=true,analyser=null,preamp=null,bass=null,compressor=null,enhancedRoute=false;
+ const values={bands:Array(frequencies.length).fill(0),rate:1,pitchShift:false,gain:0,bass:0,enhanced:false};
  function ensure(){
   if(!context){
    const AudioContext=window.AudioContext||window.webkitAudioContext;
    if(!AudioContext)throw new Error('Este navegador não oferece equalização Web Audio.');
    context=new AudioContext();source=context.createMediaElementSource(native);
    filters=frequencies.map((frequency,index)=>{const filter=context.createBiquadFilter();filter.type=index===0?'lowshelf':index===frequencies.length-1?'highshelf':'peaking';filter.frequency.value=frequency;if(filter.type==='peaking')filter.Q.value=1;return filter});
-   source.connect(filters[0]);for(let i=0;i<filters.length-1;i++)filters[i].connect(filters[i+1]);analyser=context.createAnalyser();analyser.fftSize=256;analyser.smoothingTimeConstant=.8;filters.at(-1).connect(analyser);analyser.connect(context.destination);
+   preamp=context.createGain();bass=context.createBiquadFilter();bass.type='lowshelf';bass.frequency.value=120;
+   compressor=context.createDynamicsCompressor();compressor.threshold.value=-3;compressor.knee.value=6;compressor.ratio.value=20;compressor.attack.value=.003;compressor.release.value=.15;
+   source.connect(preamp);preamp.connect(bass);bass.connect(filters[0]);for(let i=0;i<filters.length-1;i++)filters[i].connect(filters[i+1]);analyser=context.createAnalyser();analyser.fftSize=256;analyser.smoothingTimeConstant=.8;filters.at(-1).connect(analyser);analyser.connect(context.destination);
   }
   return context;
  }
  function set(valuesIn={}){
   if(Array.isArray(valuesIn.bands))values.bands=frequencies.map((_,i)=>Math.max(-12,Math.min(12,Number(valuesIn.bands[i])||0)));
   values.rate=Math.max(.75,Math.min(1.5,Number(valuesIn.rate)||1));values.pitchShift=!!valuesIn.pitchShift;
-  if(available){const ctx=ensure();filters.forEach((filter,i)=>filter.gain.setTargetAtTime(values.bands[i],ctx.currentTime,.025));native.playbackRate=values.rate;native.preservesPitch=!values.pitchShift;if('webkitPreservesPitch'in native)native.webkitPreservesPitch=!values.pitchShift;}
+  for(const key of ['gain','bass'])if(key in valuesIn)values[key]=Math.max(0,Math.min(12,Number(valuesIn[key])||0));
+  if('enhanced' in valuesIn)values.enhanced=!!valuesIn.enhanced;
+  if(available){const ctx=ensure();
+   if(enhancedRoute!==values.enhanced){filters.at(-1).disconnect();compressor.disconnect();if(values.enhanced){filters.at(-1).connect(compressor);compressor.connect(analyser)}else filters.at(-1).connect(analyser);enhancedRoute=values.enhanced;}
+   preamp.gain.setTargetAtTime(Math.pow(10,values.gain/20),ctx.currentTime,.025);bass.gain.setTargetAtTime(values.bass,ctx.currentTime,.025);
+   filters.forEach((filter,i)=>filter.gain.setTargetAtTime(values.bands[i],ctx.currentTime,.025));native.playbackRate=values.rate;native.preservesPitch=!values.pitchShift;if('webkitPreservesPitch'in native)native.webkitPreservesPitch=!values.pitchShift;}
   return structuredClone(values);
  }
- return {getAnalyser:()=>analyser,frequencies,values:()=>structuredClone(values),set,reset:()=>set({bands:[],rate:1,pitchShift:false}),setAvailable(value){available=!!value},async resume(){if(available&&context?.state==='suspended')await context.resume()},async activate(){if(available){const ctx=ensure();if(ctx.state==='suspended')await ctx.resume();set(values)}},get available(){return available}};
+ return {getAnalyser:()=>analyser,frequencies,values:()=>structuredClone(values),set,reset:()=>set({bands:[],rate:1,pitchShift:false,gain:0,bass:0,enhanced:false}),setAvailable(value){available=!!value},async resume(){if(available&&context?.state==='suspended')await context.resume()},async activate(){if(available){const ctx=ensure();if(ctx.state==='suspended')await ctx.resume();set(values)}},get available(){return available}};
 }
