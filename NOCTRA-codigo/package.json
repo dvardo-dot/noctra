@@ -1,7 +1,11 @@
 {
   "name": "noctra-player",
-  "version": "1.0.0",
+  "version": "1.4.0",
   "private": true,
-  "description": "Player pessoal de música com desktop retrô, Miku e Giratina",
-  "scripts": {"start": "node server.cjs", "dev": "node server.cjs"}
+  "type": "module",
+  "description": "NOCTRA: Nightcore, vinil + e biblioteca de vidro −",
+  "scripts": {
+    "start": "node server.cjs",
+    "dev": "node server.cjs"
+  }
 }

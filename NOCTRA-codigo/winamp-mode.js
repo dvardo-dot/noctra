@@ -1,7 +1,7 @@
-import {tracks} from './tracks.js';
+const profileTracks=()=>window.noctraApp?.getTracks?.()||[];
 import {winampSkins} from './winamp-skins.js';
 const $=id=>document.getElementById(id),shell=$('winampWindow'),host=$('webampHost'),status=$('winampStatus');
-let selectedSkin=winampSkins[0];try{const id=localStorage.getItem('noctra-winamp-skin');selectedSkin=winampSkins.find(s=>s.id===id)||selectedSkin}catch{}
+let selectedSkin=winampSkins[0];try{const id=localStorage.getItem(window.noctraProfileKey?window.noctraProfileKey('winamp-skin'):'noctra-winamp-skin');selectedSkin=winampSkins.find(s=>s.id===id)||selectedSkin}catch{}
 const EQ_BANDS=['preamp',60,170,310,600,1000,3000,6000,12000,14000,16000];
 export function resetEqualizer(instance){if(!instance?.store?.dispatch)throw Error('Equalizador indisponível');for(const band of EQ_BANDS)instance.store.dispatch({type:'SET_BAND_VALUE',band,value:50});instance.store.dispatch({type:'SET_EQ_ON'});}
 let instance=null,loading=null,owner=false,closed=false,buffering=false,nativeAudio=null,localTracks=[];
@@ -17,16 +17,19 @@ function syncPlayback(){
 function leave(){const wasOwner=owner;if(instance&&nativeAudio&&!nativeAudio.paused)instance.pause();owner=false;if(wasOwner)window.dispatchEvent(new Event('noctra:winamp-release'));$('taskWinamp').classList.add('inactive');}
 function useCd(){leave();showParent();}
 window.noctraWinamp={
- get canControl(){return !!instance&&!!nativeAudio;},get active(){return owner&&!!instance;},get paused(){return !nativeAudio||nativeAudio.paused;},get currentTime(){return nativeAudio?.currentTime||0;},
+ deactivate:()=>{leave();shell.hidden=true;},
+ getAnalyser:()=>instance?.media?._analyser||null,
+ getPlaylist:()=>instance?.getPlaylistTracks?.()||[],
+ get canControl(){return owner&&!!instance&&!!nativeAudio;},get active(){return owner&&!!instance;},get paused(){return !nativeAudio||nativeAudio.paused;},get currentTime(){return nativeAudio?.currentTime||0;},
  play(){if(instance){activate();instance.play();}},pause(){if(instance&&nativeAudio&&!nativeAudio.paused)instance.pause();syncPlayback();},seek(time){instance?.seekToTime(time);syncPlayback();},
  next(){instance?.nextTrack();},previous(){instance?.previousTrack();},setVolume(volume){instance?.setVolume(Math.round(volume*100));},
  shuffle(){instance?.toggleShuffle();syncPlayback();},repeat(){instance?.toggleRepeat();syncPlayback();},
- select(index,play){const track=tracks[index],url=track?.src?new URL(track.src,location.href).href:null;let i=localTracks.findIndex(t=>t.url===url);if(i<0||!instance)return false;activate();if((nativeAudio.currentSrc||nativeAudio.src)!==url)instance.setCurrentTrack(i);if(play)instance.play();syncPlayback();return true;}
+ select(index,play){const track=profileTracks()[index],url=track?.src?new URL(track.src,location.href).href:null;let i=localTracks.findIndex(t=>t.url===url);if(i<0||!instance)return false;activate();if((nativeAudio.currentSrc||nativeAudio.src)!==url)instance.setCurrentTrack(i);if(play)instance.play();syncPlayback();return true;}
 };
 async function initialize(){
- const {default:Webamp}=await timed(import('https://cdn.jsdelivr.net/npm/webamp@2.3.1/built/webamp.bundle.min.mjs'));
+ const {default:Webamp}=await timed(import('./vendor/webamp.bundle.min.mjs'));
  if(!Webamp.browserIsSupported())throw Error('Este navegador não oferece suporte ao Webamp');
- localTracks=tracks.filter(track=>track.src&&!track.youtubeId).map(track=>({url:new URL(track.src,location.href).href,duration:track.duration,metaData:{title:track.title,artist:track.artist}}));
+ localTracks=profileTracks().filter(track=>track.src&&!track.youtubeId).map(track=>({url:new URL(track.src,location.href).href,duration:track.duration,metaData:{title:track.title,artist:track.artist}}));
  instance=new Webamp({initialSkin:{url:new URL(selectedSkin.file,location.href).href},initialTracks:localTracks,enableHotkeys:false,enableMediaSession:false,zIndex:3,windowLayout:{main:{position:{top:0,left:0},closed:false},equalizer:{position:{top:116,left:0},closed:false},playlist:{position:{top:232,left:0},closed:false,size:{extraHeight:0,extraWidth:0}}}});
  await timed(instance.renderInto(host));instance.setVolume(65);
  // Pinned Webamp 2.3.1 media element: use real audio events for the shared CD display.
@@ -54,7 +57,7 @@ $('backToNoctra').addEventListener('click',()=>{shell.hidden=true;$('taskWinamp'
 $('joinMeNoctra').addEventListener('click',()=>{useCd();window.dispatchEvent(new Event('noctra:join-me'));});
 $('resetEq').addEventListener('click',()=>{try{resetEqualizer(instance);status.textContent='Equalizador resetado: todas as bandas e o pré-amplificador em 0 dB.';}catch(error){status.textContent=error.message;}});
 window.addEventListener('noctra:will-play',leave);
-openWinamp({takeControl:new URLSearchParams(location.search).get('player')==='winamp',scroll:false});
+if(new URLSearchParams(location.search).get('player')==='winamp')openWinamp({scroll:false});
 
 function setSkinControlsDisabled(disabled){$('winampSkin').disabled=disabled;document.querySelectorAll('[data-winamp-skin]').forEach(button=>button.disabled=disabled);}
 function updateSkinChoice(){
@@ -67,7 +70,7 @@ async function applySkin(id){
  const chosen=winampSkins.find(s=>s.id===id);if(!chosen||!instance||loading)return false;
  if(chosen.id===selectedSkin.id)return true;
  const previous=selectedSkin;setSkinControlsDisabled(true);skinMessage('Carregando '+chosen.label+'…');
- try{instance.setSkinFromUrl(new URL(chosen.file,location.href).href);await timed(instance.skinIsLoaded());selectedSkin=chosen;updateSkinChoice();let saved=true;try{localStorage.setItem('noctra-winamp-skin',chosen.id)}catch{saved=false}skinMessage(chosen.label+(saved?' — skin aplicada e salva.':' — skin aplicada para esta sessão.'));return true;}
+ try{instance.setSkinFromUrl(new URL(chosen.file,location.href).href);await timed(instance.skinIsLoaded());selectedSkin=chosen;updateSkinChoice();let saved=true;try{localStorage.setItem(window.noctraProfileKey?window.noctraProfileKey('winamp-skin'):'noctra-winamp-skin',chosen.id)}catch{saved=false}skinMessage(chosen.label+(saved?' — skin aplicada e salva.':' — skin aplicada para esta sessão.'));return true;}
  catch(error){try{instance.setSkinFromUrl(new URL(previous.file,location.href).href);await timed(instance.skinIsLoaded());}catch{}selectedSkin=previous;updateSkinChoice();skinMessage('Não foi possível aplicar essa skin. Tente novamente.');return false;}
  finally{setSkinControlsDisabled(false);}
 }
@@ -76,3 +79,7 @@ $('browseSkins').addEventListener('click',()=>$('skinDialog').showModal());
 $('skinDialog').addEventListener('close',()=>$('browseSkins').focus());
 document.querySelectorAll('[data-winamp-skin]').forEach(button=>button.addEventListener('click',async()=>{if(await applySkin(button.dataset.winampSkin))$('skinDialog').close();}));
 updateSkinChoice();
+
+window.addEventListener('noctra:profile-changed',async event=>{const key=window.noctraProfileKey?window.noctraProfileKey('winamp-skin'):'noctra-winamp-skin';let id='angels';try{id=localStorage.getItem(key)||'angels'}catch{}await applySkin(id)});
+window.addEventListener('noctra:library-changed',()=>{if(!instance)return;const next=profileTracks().filter(t=>t.src&&!t.youtubeId).map(t=>({url:new URL(t.src,location.href).href,duration:t.duration,metaData:{title:t.title,artist:t.artist}}));if(next.map(t=>t.url).join('|')!==localTracks.map(t=>t.url).join('|')){leave();instance.dispose();instance=null;nativeAudio=null;localTracks=[];host.replaceChildren();shell.hidden=true;}});
+window.addEventListener('noctra:profile-changed',()=>{leave();shell.hidden=true;});

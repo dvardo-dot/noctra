@@ -1,0 +1,9 @@
+{
+  "version": "1.4.0",
+  "sitesCommit": "af04e52a075c3b3c22340274f2998d435ce0f0e2",
+  "profiles": [
+    "nightcore",
+    "house",
+    "negative"
+  ]
+}
